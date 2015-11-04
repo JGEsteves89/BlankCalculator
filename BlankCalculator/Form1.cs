@@ -18,18 +18,38 @@ namespace BlankCalculator {
         }
         public CATInterop CAT = new CATInterop();
         private void Form1_Load(object sender, EventArgs e) {
-            string StlPath = CAT.SaveSurfaceAsStl();
 
-            List<double[]> Vertices= new List<double[]>();
-            List<int[]> Triangles= new List<int[]> ();
+            List<double[]> FixedPoints = new List<double[]>();
+            double[] oVecPlane = new double[] { 0, 0, 0, 0 };
+            string StlPath = CAT.SaveSurfaceAndFixedPoints(ref FixedPoints, ref oVecPlane);
 
-            STLReader.STLRead(StlPath,ref Vertices,ref Triangles);
-            if(Vertices.Count==0 || Triangles.Count == 0) {
+            List<double[]> Vertices = new List<double[]>();
+            List<int[]> Triangles = new List<int[]>();
+
+            STLReader.STLRead(StlPath, ref Vertices, ref Triangles);
+            if (Vertices.Count == 0 || Triangles.Count == 0) {
                 MessageBox.Show("Não foi encontrada nenhuma informação na superficie exportada. Tente outra vez.");
                 Environment.Exit(0);
             }
 
-            double[,] Equations = new double[Vertices.Count * 2, Vertices.Count * 2];
+            double min = 10000000;
+            double cur = -10000000;
+            int iMin = -1;
+            List<int> IndiceOfFixedPoints = new List<int>();
+            foreach (double[] FixPoint in FixedPoints) {
+                Point3D RefPt = new Point3D(FixPoint);
+                for (int i = 0; i < Vertices.Count; i++) {
+                    Point3D CurPt = new Point3D(Vertices[i]);
+                    cur = RefPt.DistanceTo(CurPt);
+                    if (cur < min) {
+                        min = cur;
+                        iMin = i;
+                    }
+                }
+                IndiceOfFixedPoints.Add(iMin);
+            }
+
+            double[,] MatrixA = new double[Vertices.Count * 2, Vertices.Count * 2];
 
             for (int i = 0; i < Vertices.Count; i++) {
                 int[] CurTri = new int[] { 0, 0, 0 };
@@ -38,19 +58,19 @@ namespace BlankCalculator {
                     for (int j = 0; j < 3; j++) {
                         if (t[j] == i) { indexDown0 = j; break; }
                     }
-                    if (indexDown0 != -1) {CurTri = t;break;}
+                    if (indexDown0 != -1) { CurTri = t; break; }
                 }
                 int indexDown1 = indexDown0 - 1;
                 if (indexDown1 < 0) indexDown1 = 2;
                 int indexDown2 = indexDown1 - 1;
                 if (indexDown2 < 0) indexDown2 = 2;
-            
+
                 Point3D vd0, vd1, vd2;
                 vd0 = new Point3D(Vertices[CurTri[indexDown0]]);
                 vd1 = new Point3D(Vertices[CurTri[indexDown1]]);
                 vd2 = new Point3D(Vertices[CurTri[indexDown2]]);
 
-                Line3D  lU, lD;
+                Line3D lU, lD;
                 lU = new Line3D(vd1, vd0);
                 lD = new Line3D(vd1, vd2);
 
@@ -58,31 +78,48 @@ namespace BlankCalculator {
                 double Len = lU.Length / lD.Length;
 
 
-                Equations[CurTri[indexDown0] * 2, CurTri[indexDown0] * 2] = 1;
-                Equations[CurTri[indexDown0] * 2, CurTri[indexDown0] * 2+1] = 0;
+                MatrixA[CurTri[indexDown0] * 2, CurTri[indexDown0] * 2] = 1;
+                MatrixA[CurTri[indexDown0] * 2, CurTri[indexDown0] * 2 + 1] = 0;
 
-                Equations[CurTri[indexDown0] * 2, CurTri[indexDown1] * 2] = Len*Math.Cos(Ang)-1;
-                Equations[CurTri[indexDown0] * 2, CurTri[indexDown1] * 2 + 1] = -Len * Math.Sin(Ang);
+                MatrixA[CurTri[indexDown0] * 2, CurTri[indexDown1] * 2] = Len * Math.Cos(Ang) - 1;
+                MatrixA[CurTri[indexDown0] * 2, CurTri[indexDown1] * 2 + 1] = -Len * Math.Sin(Ang);
 
-                Equations[CurTri[indexDown0] * 2, CurTri[indexDown2] * 2] = -Len * Math.Cos(Ang);
-                Equations[CurTri[indexDown0] * 2, CurTri[indexDown2] * 2 + 1] = Len * Math.Sin(Ang);
+                MatrixA[CurTri[indexDown0] * 2, CurTri[indexDown2] * 2] = -Len * Math.Cos(Ang);
+                MatrixA[CurTri[indexDown0] * 2, CurTri[indexDown2] * 2 + 1] = Len * Math.Sin(Ang);
 
 
-                Equations[CurTri[indexDown0] * 2+1, CurTri[indexDown0] * 2] = 0;
-                Equations[CurTri[indexDown0] * 2 + 1, CurTri[indexDown0] * 2 + 1] = 1;
+                MatrixA[CurTri[indexDown0] * 2 + 1, CurTri[indexDown0] * 2] = 0;
+                MatrixA[CurTri[indexDown0] * 2 + 1, CurTri[indexDown0] * 2 + 1] = 1;
 
-                Equations[CurTri[indexDown0] * 2 + 1, CurTri[indexDown1] * 2] = Len * Math.Sin(Ang);
-                Equations[CurTri[indexDown0] * 2 + 1, CurTri[indexDown1] * 2 + 1] = Len * Math.Cos(Ang) - 1;
+                MatrixA[CurTri[indexDown0] * 2 + 1, CurTri[indexDown1] * 2] = Len * Math.Sin(Ang);
+                MatrixA[CurTri[indexDown0] * 2 + 1, CurTri[indexDown1] * 2 + 1] = Len * Math.Cos(Ang) - 1;
 
-                Equations[CurTri[indexDown0] * 2 + 1, CurTri[indexDown2] * 2] = -Len * Math.Sin(Ang);
-                Equations[CurTri[indexDown0] * 2 + 1, CurTri[indexDown2] * 2 + 1] = -Len * Math.Cos(Ang);
+                MatrixA[CurTri[indexDown0] * 2 + 1, CurTri[indexDown2] * 2] = -Len * Math.Sin(Ang);
+                MatrixA[CurTri[indexDown0] * 2 + 1, CurTri[indexDown2] * 2 + 1] = -Len * Math.Cos(Ang);
             }
-            var A = Matrix<double>.Build.DenseOfArray(Equations);
+
+            double[,] MatrixCa = new double[IndiceOfFixedPoints.Count * 2, Vertices.Count * 2];
+            double[] VectorR = new double[IndiceOfFixedPoints.Count * 2];
+            Plane oPlane = new Plane(new UnitVector3D(new double[] { oVecPlane[3], oVecPlane[4], oVecPlane[5]}).CrossProduct(new UnitVector3D(new double[] { oVecPlane[6], oVecPlane[7], oVecPlane[8] })), new Point3D(new double[] { oVecPlane[0], oVecPlane[1], oVecPlane[2] }));
+            for (int i = 0; i < IndiceOfFixedPoints.Count; i++) {
+                MatrixCa[i * 2, IndiceOfFixedPoints[i]*2] = 1;
+                VectorR[i * 2] = new Point3D(Vertices[IndiceOfFixedPoints[i]]).ProjectOn(oPlane).X;
+                MatrixCa[i * 2 + 1, IndiceOfFixedPoints[i]*2+1] = 1;
+                VectorR[i * 2 + 1] = new Point3D(Vertices[IndiceOfFixedPoints[i]]).ProjectOn(oPlane).Y;
+            }
+
+            Matrix<double> Ca = Matrix<double>.Build.DenseOfArray(MatrixCa);
+            Console.WriteLine(Ca);
+            Vector<double> R = Vector<double>.Build.DenseOfArray(VectorR);
+            Console.WriteLine(R);
+            Matrix<double> A = Matrix<double>.Build.DenseOfArray(MatrixA);
             Console.WriteLine(A);
-            var b = Vector<double>.Build.Dense(Vertices.Count * 2);
-            Console.WriteLine(b);
-            var x = A.Solve(b);
-            Console.WriteLine(x);
+            double Penalty = 10;
+
+            Matrix<double> Ak = A.Transpose() * A + Penalty * Ca.Transpose() * Ca;
+            Console.WriteLine(Ak);
+            Vector<double> X = Ak.Solve(Penalty * Ca.Transpose() * R);
+            Console.WriteLine(X);
         }
     }
 }
