@@ -10,6 +10,7 @@ using PARTITF;
 using SPATypeLib;
 using KnowledgewareTypeLib;
 using System.Windows.Forms;
+using MathNet.Numerics.LinearAlgebra;
 
 namespace BlankCalculator {
     public class CATInterop {
@@ -140,6 +141,54 @@ namespace BlankCalculator {
                 }
             }
             return Ref;
+        }
+
+        internal void PrintTriangles(Vector<double> x, 
+            List<int[]> triangles, 
+            MathNet.Spatial.Euclidean.Point3D oRoot,
+            MathNet.Spatial.Euclidean.UnitVector3D vDir1,
+            MathNet.Spatial.Euclidean.UnitVector3D vDir2) {
+
+            Part oPart = oPartDoc.Part;
+            HybridShapeFactory hsf = (HybridShapeFactory)oPart.HybridShapeFactory;
+            HybridBody hb1;
+            try {
+                hb1=(HybridBody)oPart.HybridBodies.GetItem("Blank Calculator Result");
+                hb1.get_Name();
+                oSel.Clear();
+                oSel.Add(hb1);
+                oSel.Delete();
+            } catch (Exception) {}
+
+            hb1 = (HybridBody)oPart.HybridBodies.Add();
+            hb1.set_Name("Blank Calculator Result");
+
+            //CATIA.RefreshDisplay = false;
+            //CATIA.Interactive = false;
+            List<Reference> RsltPoints = new List<Reference>();
+            MathNet.Spatial.Euclidean.CoordinateSystem Axis = new MathNet.Spatial.Euclidean.CoordinateSystem(oRoot, vDir1, vDir2, vDir1.CrossProduct(vDir2));
+
+            for (int i = 0; i < x.Count/2; i++) {
+                MathNet.Spatial.Euclidean.Point3D PtMath = new MathNet.Spatial.Euclidean.Point3D(new double[] { x[i], x[i+1], 0 });
+                PtMath = Axis.TransformFromCoordSys(PtMath);
+                Point PTCat= hsf.AddNewPointCoord(PtMath.X, PtMath.Y, PtMath.Z);
+                PTCat.Compute();
+                RsltPoints.Add(oPart.CreateReferenceFromObject(PTCat));
+            }
+            foreach (int[] item in triangles) {
+                Line lUp = hsf.AddNewLinePtPt(RsltPoints[item[0]], RsltPoints[item[1]]);
+                lUp.Compute();
+                hb1.AppendHybridShape(lUp);
+                Line l0 = hsf.AddNewLinePtPt(RsltPoints[item[1]], RsltPoints[item[2]]);
+                l0.Compute();
+                hb1.AppendHybridShape(l0);
+                Line lDown = hsf.AddNewLinePtPt(RsltPoints[item[2]], RsltPoints[item[0]]);
+                lDown.Compute();
+                hb1.AppendHybridShape(lDown);
+            }
+            
+            //CATIA.RefreshDisplay = true;
+            //CATIA.Interactive = true;
         }
     }
 }

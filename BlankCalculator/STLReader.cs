@@ -16,7 +16,7 @@ namespace BlankCalculator {
             List<string> Lines = System.IO.File.ReadAllLines(CaminhoStl).ToList();
             foreach (string line in Lines) {
                 if (line.Trim().StartsWith("vertex")) {
-                    string newline = line.Replace(".", ",");
+                    string newline = line;
                     double[] aux = new double[] { double.Parse(newline.Split(new string[] { " " }, StringSplitOptions.RemoveEmptyEntries)[1]),
                                                 double.Parse(newline.Split(new string[]{" "}, StringSplitOptions.RemoveEmptyEntries)[2]),
                                                 double.Parse(newline.Split(new string[]{" "}, StringSplitOptions.RemoveEmptyEntries)[3]) };

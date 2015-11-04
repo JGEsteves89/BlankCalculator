@@ -37,6 +37,8 @@ namespace BlankCalculator {
             int iMin = -1;
             List<int> IndiceOfFixedPoints = new List<int>();
             foreach (double[] FixPoint in FixedPoints) {
+                 min = 10000000;
+                 cur = -10000000;
                 Point3D RefPt = new Point3D(FixPoint);
                 for (int i = 0; i < Vertices.Count; i++) {
                     Point3D CurPt = new Point3D(Vertices[i]);
@@ -100,7 +102,12 @@ namespace BlankCalculator {
 
             double[,] MatrixCa = new double[IndiceOfFixedPoints.Count * 2, Vertices.Count * 2];
             double[] VectorR = new double[IndiceOfFixedPoints.Count * 2];
-            Plane oPlane = new Plane(new UnitVector3D(new double[] { oVecPlane[3], oVecPlane[4], oVecPlane[5]}).CrossProduct(new UnitVector3D(new double[] { oVecPlane[6], oVecPlane[7], oVecPlane[8] })), new Point3D(new double[] { oVecPlane[0], oVecPlane[1], oVecPlane[2] }));
+
+            Point3D oRoot = new Point3D(new double[] { oVecPlane[0], oVecPlane[1], oVecPlane[2] });
+            UnitVector3D vDir1 = new UnitVector3D(new double[] { oVecPlane[3], oVecPlane[4], oVecPlane[5] });
+            UnitVector3D vDir2 = new UnitVector3D(new double[] { oVecPlane[6], oVecPlane[7], oVecPlane[8] });
+            Plane oPlane = new Plane(vDir1.CrossProduct(vDir2),  oRoot);
+
             for (int i = 0; i < IndiceOfFixedPoints.Count; i++) {
                 MatrixCa[i * 2, IndiceOfFixedPoints[i]*2] = 1;
                 VectorR[i * 2] = new Point3D(Vertices[IndiceOfFixedPoints[i]]).ProjectOn(oPlane).X;
@@ -120,6 +127,10 @@ namespace BlankCalculator {
             Console.WriteLine(Ak);
             Vector<double> X = Ak.Solve(Penalty * Ca.Transpose() * R);
             Console.WriteLine(X);
+
+            CAT.PrintTriangles(X,Triangles, oRoot, vDir1, vDir2);
+
+
         }
     }
 }
