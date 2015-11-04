@@ -30,6 +30,7 @@ namespace BlankCalculator {
         }
 
         internal string SaveSurfaceAsStl() {
+
             string StlPath= System.IO.Path.GetTempPath() + "STLFileBlankCalculator"; ;
             oPartDoc = (PartDocument)CATIA.ActiveDocument;
             oSel = oPartDoc.Selection;

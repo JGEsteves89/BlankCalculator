@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace BlankCalculator {
     public static class STLReader {
+    
         public static void STLRead(string CaminhoStl, ref List<double[]> Vertices, ref List<int[]> Triagles) {
             Vertices = new List<double[]>();
             Triagles = new List<int[]>();
