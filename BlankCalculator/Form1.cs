@@ -74,7 +74,7 @@ namespace BlankCalculator {
             //CAT.PrintTriangles(X1, TrianglesVertices, oRoot, vDir1, vDir2);
 
             //Solve using the edge to edge interpretation of the article
-            EdgeToEdgeSolver eeSolver = new EdgeToEdgeSolver();
+            EdgeToEdgeSolver2 eeSolver = new EdgeToEdgeSolver2();
             Vector<double> X2 = eeSolver.Solve(Vertices, TrianglesEdges, Edges, IndiceOfFixedPoints, oRoot, vDir1, vDir2);
             //Print Result of triangles in CATIA;
 
