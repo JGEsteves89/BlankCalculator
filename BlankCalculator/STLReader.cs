@@ -9,8 +9,9 @@ using System.Threading.Tasks;
 namespace BlankCalculator {
     public static class STLReader {
     
-        public static void STLRead(string CaminhoStl, ref List<double[]> Vertices, ref List<int[]> TrianglesVertices, ref List<int[]> TrianglesEdges, ref List<int[]> Edges) {
+        public static void STLRead(string CaminhoStl, ref List<double[]> Vertices, ref List<int[]> TrianglesVertices, ref List<int[]> TrianglesEdges, ref List<int[]> Edges, ref List<double[]> FacetsNormal) {
             Vertices = new List<double[]>();
+            FacetsNormal = new List<double[]>();
             TrianglesVertices = new List<int[]>();
             Edges = new List<int[]>();
             int[] LastTriangle = new int[] { 0, 0, 0 };
@@ -19,10 +20,9 @@ namespace BlankCalculator {
             List<string> Lines = System.IO.File.ReadAllLines(CaminhoStl).ToList();
             foreach (string line in Lines) {
                 if (line.Trim().StartsWith("vertex")) {
-                    string newline = line;
-                    double[] aux = new double[] { double.Parse(newline.Split(new string[] { " " }, StringSplitOptions.RemoveEmptyEntries)[1], CultureInfo.InvariantCulture),
-                                                double.Parse(newline.Split(new string[]{" "}, StringSplitOptions.RemoveEmptyEntries)[2], CultureInfo.InvariantCulture),
-                                                double.Parse(newline.Split(new string[]{" "}, StringSplitOptions.RemoveEmptyEntries)[3], CultureInfo.InvariantCulture) };
+                    double[] aux = new double[] { double.Parse(line.Split(new string[] { " " }, StringSplitOptions.RemoveEmptyEntries)[1], CultureInfo.InvariantCulture),
+                                                double.Parse(line.Split(new string[]{" "}, StringSplitOptions.RemoveEmptyEntries)[2], CultureInfo.InvariantCulture),
+                                                double.Parse(line.Split(new string[]{" "}, StringSplitOptions.RemoveEmptyEntries)[3], CultureInfo.InvariantCulture) };
                     LastTriangle[i] = FindVertice(Vertices, aux);
                     if (LastTriangle[i] == -1) {
                         Vertices.Add(aux);
@@ -51,6 +51,11 @@ namespace BlankCalculator {
                         LastEdges[2] = Edges.Count - 1;
                     }
                     TrianglesEdges.Add(new int[] { LastEdges[0], LastEdges[1], LastEdges[2] });
+                } else if (line.Trim().StartsWith("facet normal")) {
+                    double[] aux = new double[] { double.Parse(line.Split(new string[] { " " }, StringSplitOptions.RemoveEmptyEntries)[2], CultureInfo.InvariantCulture),
+                                                double.Parse(line.Split(new string[]{" "}, StringSplitOptions.RemoveEmptyEntries)[3], CultureInfo.InvariantCulture),
+                                                double.Parse(line.Split(new string[]{" "}, StringSplitOptions.RemoveEmptyEntries)[4], CultureInfo.InvariantCulture) };
+                    FacetsNormal.Add(aux);
                 }
             }
         }

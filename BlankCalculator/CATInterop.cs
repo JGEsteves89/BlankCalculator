@@ -157,9 +157,10 @@ namespace BlankCalculator {
             List<int[]> triangles,
             MathNet.Spatial.Euclidean.Point3D oRoot,
             MathNet.Spatial.Euclidean.UnitVector3D vDir1,
-            MathNet.Spatial.Euclidean.UnitVector3D vDir2, 
+            MathNet.Spatial.Euclidean.UnitVector3D vDir2,
             int iTrans,
-            MathNet.Spatial.Euclidean.Point3D oTrans) {
+            MathNet.Spatial.Euclidean.Point3D oTrans,
+            bool just2D= false) {
 
             Part oPart = oPartDoc.Part;
             HybridShapeFactory hsf = (HybridShapeFactory)oPart.HybridShapeFactory;
@@ -178,7 +179,6 @@ namespace BlankCalculator {
             //CATIA.RefreshDisplay = false;
             //CATIA.Interactive = false;
             List<Reference> RsltPoints = new List<Reference>();
-            bool just2D = true;
             MathNet.Spatial.Euclidean.CoordinateSystem Axis = new MathNet.Spatial.Euclidean.CoordinateSystem(oRoot, vDir1, vDir2, vDir1.CrossProduct(vDir2));
             if (just2D) {
                 for (int i = 0; i < x.Count / 2; i++) {
@@ -200,9 +200,6 @@ namespace BlankCalculator {
                 }
             }
               
-
-
-
 
             foreach (int[] item in triangles) {
                 Line lUp = hsf.AddNewLinePtPt(RsltPoints[item[0]], RsltPoints[item[1]]);
