@@ -19,19 +19,26 @@ namespace BlankCalculator {
         public CATInterop CAT = new CATInterop();
         private void Form1_Load(object sender, EventArgs e) {
 
+            //Plane and FixedPoints initializor
             List<double[]> FixedPoints = new List<double[]>();
             double[] oVecPlane = new double[] { 0, 0, 0, 0 };
+
+            //Interop with catia to retrive exported stlPath
             string StlPath = CAT.SaveSurfaceAndFixedPoints(ref FixedPoints, ref oVecPlane);
 
             List<double[]> Vertices = new List<double[]>();
-            List<int[]> Triangles = new List<int[]>();
+            List<int[]> TrianglesVertices = new List<int[]>();
+            List<int[]> Edges = new List<int[]>();
+            List<int[]> TrianglesEdges = new List<int[]>();
 
-            STLReader.STLRead(StlPath, ref Vertices, ref Triangles);
-            if (Vertices.Count == 0 || Triangles.Count == 0) {
+            //Parse stlFile to Vertice and triangle matrix
+            STLReader.STLRead(StlPath, ref Vertices, ref TrianglesVertices,ref TrianglesEdges, ref Edges);
+            if (Vertices.Count == 0 || TrianglesVertices.Count == 0) {
                 MessageBox.Show("Não foi encontrada nenhuma informação na superficie exportada. Tente outra vez.");
                 Environment.Exit(0);
             }
 
+            //Detection of the most apropriated verticePoints
             double min = 10000000;
             double cur = -10000000;
             int iMin = -1;
@@ -50,87 +57,28 @@ namespace BlankCalculator {
                 }
                 IndiceOfFixedPoints.Add(iMin);
             }
-
-            double[,] MatrixA = new double[Vertices.Count * 2, Vertices.Count * 2];
-
-            for (int i = 0; i < Vertices.Count; i++) {
-                int[] CurTri = new int[] { 0, 0, 0 };
-                int indexDown0 = -1;
-                foreach (int[] t in Triangles) {
-                    for (int j = 0; j < 3; j++) {
-                        if (t[j] == i) { indexDown0 = j; break; }
-                    }
-                    if (indexDown0 != -1) { CurTri = t; break; }
-                }
-                int indexDown1 = indexDown0 - 1;
-                if (indexDown1 < 0) indexDown1 = 2;
-                int indexDown2 = indexDown1 - 1;
-                if (indexDown2 < 0) indexDown2 = 2;
-
-                Point3D vd0, vd1, vd2;
-                vd0 = new Point3D(Vertices[CurTri[indexDown0]]);
-                vd1 = new Point3D(Vertices[CurTri[indexDown1]]);
-                vd2 = new Point3D(Vertices[CurTri[indexDown2]]);
-
-                Line3D lU, lD;
-                lU = new Line3D(vd1, vd0);
-                lD = new Line3D(vd1, vd2);
-
-                double Ang = lU.Direction.AngleTo(lD.Direction).Radians;
-                double Len = lU.Length / lD.Length;
-
-
-                MatrixA[CurTri[indexDown0] * 2, CurTri[indexDown0] * 2] = 1;
-                MatrixA[CurTri[indexDown0] * 2, CurTri[indexDown0] * 2 + 1] = 0;
-
-                MatrixA[CurTri[indexDown0] * 2, CurTri[indexDown1] * 2] = Len * Math.Cos(Ang) - 1;
-                MatrixA[CurTri[indexDown0] * 2, CurTri[indexDown1] * 2 + 1] = -Len * Math.Sin(Ang);
-
-                MatrixA[CurTri[indexDown0] * 2, CurTri[indexDown2] * 2] = -Len * Math.Cos(Ang);
-                MatrixA[CurTri[indexDown0] * 2, CurTri[indexDown2] * 2 + 1] = Len * Math.Sin(Ang);
-
-
-                MatrixA[CurTri[indexDown0] * 2 + 1, CurTri[indexDown0] * 2] = 0;
-                MatrixA[CurTri[indexDown0] * 2 + 1, CurTri[indexDown0] * 2 + 1] = 1;
-
-                MatrixA[CurTri[indexDown0] * 2 + 1, CurTri[indexDown1] * 2] = Len * Math.Sin(Ang);
-                MatrixA[CurTri[indexDown0] * 2 + 1, CurTri[indexDown1] * 2 + 1] = Len * Math.Cos(Ang) - 1;
-
-                MatrixA[CurTri[indexDown0] * 2 + 1, CurTri[indexDown2] * 2] = -Len * Math.Sin(Ang);
-                MatrixA[CurTri[indexDown0] * 2 + 1, CurTri[indexDown2] * 2 + 1] = -Len * Math.Cos(Ang);
-            }
-
-            double[,] MatrixCa = new double[IndiceOfFixedPoints.Count * 2, Vertices.Count * 2];
-            double[] VectorR = new double[IndiceOfFixedPoints.Count * 2];
-
-            Point3D oRoot = new Point3D(new double[] { oVecPlane[0], oVecPlane[1], oVecPlane[2] });
+            int OneIndFix = IndiceOfFixedPoints[0];
+            Point3D OnePointFix = new Point3D(new double[] { Vertices[OneIndFix][0], Vertices[OneIndFix][1], Vertices[OneIndFix][2] });
+          
+      //Calculation of Plane of flattening
+             Point3D oRoot = new Point3D(new double[] { oVecPlane[0], oVecPlane[1], oVecPlane[2] });
             UnitVector3D vDir1 = new UnitVector3D(new double[] { oVecPlane[3], oVecPlane[4], oVecPlane[5] });
             UnitVector3D vDir2 = new UnitVector3D(new double[] { oVecPlane[6], oVecPlane[7], oVecPlane[8] });
-            Plane oPlane = new Plane(vDir1.CrossProduct(vDir2),  oRoot);
 
-            for (int i = 0; i < IndiceOfFixedPoints.Count; i++) {
-                MatrixCa[i * 2, IndiceOfFixedPoints[i]*2] = 1;
-                VectorR[i * 2] = new Point3D(Vertices[IndiceOfFixedPoints[i]]).ProjectOn(oPlane).X;
-                MatrixCa[i * 2 + 1, IndiceOfFixedPoints[i]*2+1] = 1;
-                VectorR[i * 2 + 1] = new Point3D(Vertices[IndiceOfFixedPoints[i]]).ProjectOn(oPlane).Y;
-            }
+            //Solve using the vertice to vertice interpretation of the article
+            //VerticeToVerticeSolver vvSolver = new VerticeToVerticeSolver();
+            //Vector<double> X1 = vvSolver.Solve(Vertices, TrianglesVertices, IndiceOfFixedPoints, oRoot, vDir1, vDir2);
+            ////Print Result of triangles in CATIA;
+            //CAT.PrintTriangles(X1, TrianglesVertices, oRoot, vDir1, vDir2);
 
-            Matrix<double> Ca = Matrix<double>.Build.DenseOfArray(MatrixCa);
-            Console.WriteLine(Ca);
-            Vector<double> R = Vector<double>.Build.DenseOfArray(VectorR);
-            Console.WriteLine(R);
-            Matrix<double> A = Matrix<double>.Build.DenseOfArray(MatrixA);
-            Console.WriteLine(A);
-            double Penalty = 10;
+            //Solve using the edge to edge interpretation of the article
+            EdgeToEdgeSolver eeSolver = new EdgeToEdgeSolver();
+            Vector<double> X2 = eeSolver.Solve(Vertices, TrianglesEdges,Edges, IndiceOfFixedPoints, oRoot, vDir1, vDir2);
+            //Print Result of triangles in CATIA;
+            
+            CAT.PrintTriangles(X2, TrianglesVertices, oRoot, vDir1, vDir2, OneIndFix, OnePointFix);
 
-            Matrix<double> Ak = A.Transpose() * A + Penalty * Ca.Transpose() * Ca;
-            Console.WriteLine(Ak);
-            Vector<double> X = Ak.Solve(Penalty * Ca.Transpose() * R);
-            Console.WriteLine(X);
-
-            CAT.PrintTriangles(X,Triangles, oRoot, vDir1, vDir2);
-
-
+            Application.Exit();
         }
     }
 }

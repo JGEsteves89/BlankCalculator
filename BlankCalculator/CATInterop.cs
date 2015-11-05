@@ -58,15 +58,23 @@ namespace BlankCalculator {
 
             object[] Vec = new object[3];
             oSel.Clear();
+            Reference Ref1 = SelectPoint("Selecione o conjunto de pontos fixos. Esc para sair.");
+            oSel.Clear();
+            if (Ref1 == null) Environment.Exit(0);
+            oSpa.GetMeasurable(Ref1).GetPoint(Vec);
+            FixedPoints.Add(new double[] { (double)Vec[0], (double)Vec[1], (double)Vec[2] });
             do {
-                Reference Ref1 = SelectPoint("Selecione o conjunto de pontos fixos. Esc para terminar.");
+                Ref1 = SelectPoint("Selecione o conjunto de pontos fixos (" + FixedPoints.Count + " selecionados). Esc para terminar.");
                 oSel.Clear();
                 if (Ref1 == null) break;
                 oSpa.GetMeasurable(Ref1).GetPoint(Vec);
                 FixedPoints.Add(new double[] { (double)Vec[0], (double)Vec[1], (double)Vec[2] });
             } while (true);
             if(FixedPoints.Count==0) Environment.Exit(0);
-
+            oSel.Clear();
+            oPartDoc.Part.Update();
+            System.Windows.Forms.Application.DoEvents();
+            System.Threading.Thread.Sleep(500);
             Vec = new object[9];
             Reference Ref2 = SelectPlane("Selecione qual o plano do planificado. Esc para terminar.");
             oSel.Clear();
@@ -135,6 +143,8 @@ namespace BlankCalculator {
             if (oSel.Item2(1).Reference.DisplayName.ToLower().IndexOf("Point".ToLower()) != -1) {
                 try {
                     Ref = oSel.Item2(1).Reference;
+                    oSel.VisProperties.SetRealWidth(4, 1);
+                    oSel.VisProperties.SetRealColor(System.Drawing.Color.Blue.R, System.Drawing.Color.Blue.G, System.Drawing.Color.Blue.B,1);
                 } catch (Exception) {
                     MessageBox.Show("Certifique-se que a selecção está correcta.");
                     goto AGAIN;
@@ -143,11 +153,13 @@ namespace BlankCalculator {
             return Ref;
         }
 
-        internal void PrintTriangles(Vector<double> x, 
-            List<int[]> triangles, 
+        internal void PrintTriangles(Vector<double> x,
+            List<int[]> triangles,
             MathNet.Spatial.Euclidean.Point3D oRoot,
             MathNet.Spatial.Euclidean.UnitVector3D vDir1,
-            MathNet.Spatial.Euclidean.UnitVector3D vDir2) {
+            MathNet.Spatial.Euclidean.UnitVector3D vDir2, 
+            int iTrans,
+            MathNet.Spatial.Euclidean.Point3D oTrans) {
 
             Part oPart = oPartDoc.Part;
             HybridShapeFactory hsf = (HybridShapeFactory)oPart.HybridShapeFactory;
@@ -166,15 +178,32 @@ namespace BlankCalculator {
             //CATIA.RefreshDisplay = false;
             //CATIA.Interactive = false;
             List<Reference> RsltPoints = new List<Reference>();
+            bool just2D = true;
             MathNet.Spatial.Euclidean.CoordinateSystem Axis = new MathNet.Spatial.Euclidean.CoordinateSystem(oRoot, vDir1, vDir2, vDir1.CrossProduct(vDir2));
-
-            for (int i = 0; i < x.Count/2; i++) {
-                MathNet.Spatial.Euclidean.Point3D PtMath = new MathNet.Spatial.Euclidean.Point3D(new double[] { x[i], x[i+1], 0 });
-                PtMath = Axis.TransformFromCoordSys(PtMath);
-                Point PTCat= hsf.AddNewPointCoord(PtMath.X, PtMath.Y, PtMath.Z);
-                PTCat.Compute();
-                RsltPoints.Add(oPart.CreateReferenceFromObject(PTCat));
+            if (just2D) {
+                for (int i = 0; i < x.Count / 2; i++) {
+                    MathNet.Spatial.Euclidean.Point3D  PtMath = new MathNet.Spatial.Euclidean.Point3D(new double[] { x[i * 2], x[i * 2 + 1], 0 });
+                    Point PTCat = hsf.AddNewPointCoord(PtMath.X, PtMath.Y, PtMath.Z);
+                    PTCat.Compute();
+                    RsltPoints.Add(oPart.CreateReferenceFromObject(PTCat));
+                }
+            } else {
+                MathNet.Spatial.Euclidean.Point3D PtMath = new MathNet.Spatial.Euclidean.Point3D(new double[] { x[iTrans * 2], x[iTrans * 2 + 1], 0 });
+                PtMath = Axis.TransformToCoordSys(PtMath);
+                double[] vecTranslation = new double[] { oTrans.X - PtMath.X, oTrans.Y - PtMath.Y, oTrans.Z - PtMath.Z };
+                for (int i = 0; i < x.Count / 2; i++) {
+                    PtMath = new MathNet.Spatial.Euclidean.Point3D(new double[] { x[i * 2], x[i * 2 + 1], 0 });
+                    PtMath = Axis.TransformToCoordSys(PtMath);
+                    Point PTCat = hsf.AddNewPointCoord(PtMath.X + vecTranslation[0], PtMath.Y + vecTranslation[1], PtMath.Z + vecTranslation[2]);
+                    PTCat.Compute();
+                    RsltPoints.Add(oPart.CreateReferenceFromObject(PTCat));
+                }
             }
+              
+
+
+
+
             foreach (int[] item in triangles) {
                 Line lUp = hsf.AddNewLinePtPt(RsltPoints[item[0]], RsltPoints[item[1]]);
                 lUp.Compute();
