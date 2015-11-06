@@ -8,7 +8,9 @@ using System.Threading.Tasks;
 
 namespace BlankCalculator {
     public static class STLReader {
-    
+        internal static void STLRead(string stlPath, ref Mesh M) {
+            STLRead(stlPath, ref M.Vertices, ref M.TrianglesVertices, ref M.TrianglesEdges, ref M.Edges, ref M.FacetNormals);
+        }
         public static void STLRead(string CaminhoStl, ref List<double[]> Vertices, ref List<int[]> TrianglesVertices, ref List<int[]> TrianglesEdges, ref List<int[]> Edges, ref List<double[]> FacetsNormal) {
             Vertices = new List<double[]>();
             FacetsNormal = new List<double[]>();
@@ -59,6 +61,9 @@ namespace BlankCalculator {
                 }
             }
         }
+
+
+
         public static int FindVertice( List<double[]> Vertices, double[] aux) {
             for (int i = 0; i < Vertices.Count; i++) {
                 if (Vertices[i][0].Equals(aux[0])) {

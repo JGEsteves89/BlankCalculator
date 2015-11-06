@@ -84,6 +84,9 @@ namespace BlankCalculator {
                                     (double)Vec[6], (double)Vec[7], (double)Vec[8] };
             return StlPath + ".stl";
         }
+
+
+
         private Reference SelectSurface(string msg) {
             object[] InputobjectType = new object[] { "Face" };
             Reference Ref= null;
@@ -152,7 +155,9 @@ namespace BlankCalculator {
             }
             return Ref;
         }
-
+        internal void PrintTriangles(Vector<double> X2, Mesh M) {
+            PrintTriangles(X2, M.TrianglesVertices, M.oRoot, M.vDir1, M.vDir2, M.OneIndFix, M.OnePointFix);
+        }
         internal void PrintTriangles(Vector<double> x,
             List<int[]> triangles,
             MathNet.Spatial.Euclidean.Point3D oRoot,

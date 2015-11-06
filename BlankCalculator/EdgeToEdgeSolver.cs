@@ -7,8 +7,11 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace BlankCalculator {
-    public class EdgeToEdgeSolver {
-        public Vector<double> Solve(List<double[]> Vertices, List<int[]> TrianglesEdges, List<int[]> Edges, List<int> IndiceOfFixedPoints, Point3D oRoot, UnitVector3D vDir1, UnitVector3D vDir2) {
+    public static class EdgeToEdgeSolver {
+        internal static Vector<double> Solve(Mesh M) {
+            return Solve(M.Vertices, M.TrianglesEdges, M.Edges, M.IndiceOfFixedPoints, M.oRoot, M.vDir1, M.vDir2);
+        }
+        public static Vector<double> Solve(List<double[]> Vertices, List<int[]> TrianglesEdges, List<int[]> Edges, List<int> IndiceOfFixedPoints, Point3D oRoot, UnitVector3D vDir1, UnitVector3D vDir2) {
 
             double[,] MatrixA = new double[Edges.Count*2, Vertices.Count * 2];
 
@@ -99,8 +102,24 @@ namespace BlankCalculator {
             Matrix<double> Ak = A.Transpose() * A + Penalty * Ca.Transpose() * Ca;
             Console.WriteLine(Ak);
             Vector<double> X = Ak.Solve(Penalty * Ca.Transpose() * R);
+
+            X = Ak.Solve(Penalty * Ca.Transpose() * R);
             Console.WriteLine(X);
+            bool valid = true;
+            if (!valid) {
+                var solver = new MathNet.Numerics.LinearAlgebra.Double.Solvers.BiCgStab();
+                var preconditioner = new MathNet.Numerics.LinearAlgebra.Double.Solvers.MILU0Preconditioner();
+                var iterator = new MathNet.Numerics.LinearAlgebra.Solvers.Iterator<double>(
+                    new MathNet.Numerics.LinearAlgebra.Solvers.ResidualStopCriterion<double>(1.0e-8),
+                    new MathNet.Numerics.LinearAlgebra.Solvers.IterationCountStopCriterion<double>(1000));
+
+                var x = Ak.SolveIterative(Penalty * Ca.Transpose() * R, solver, iterator);
+                var status = iterator.Status;
+                Console.WriteLine(X);
+            }
             return X;
         }
+
+
     }
 }

@@ -64,6 +64,9 @@
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
+    <Compile Include="Mesh.cs" />
+    <Compile Include="EnergyModelFiniteSolver.cs" />
+    <Compile Include="NewtonRaphsonFiniteSolver.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="STLReader.cs" />
