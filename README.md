@@ -1,5 +1,5 @@
 # BlankCalculator
-Surface Flattening based on Linear-Elastic Finite Element Method using CATIA and stl Files
+Surface Flattening based on CATIA and stl Files
 
 Selection of arbitrary surface on CATIA that will produce the flattened surface from a stl file with several methods described:
 
