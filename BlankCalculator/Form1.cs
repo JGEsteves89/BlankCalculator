@@ -57,6 +57,8 @@ namespace BlankCalculator {
 
             //Print Result of triangles in CATIA;
             CAT.PrintTriangles(X, M);
+            goto final;
+
             Vector<double> Y = Vector<double>.Build.Dense(X.Count);
             if (Method== FiniteSolverMethod.NewtonRaphson) {
                 //Try to calculate de displacement vector based on finite-element analysis using NewtonRapson Method
@@ -68,6 +70,7 @@ namespace BlankCalculator {
                 Y = EnergyModelFiniteSolver.solve(X, M);
             }
             CAT.PrintTriangles(Y, M);
+            final:
             Application.Exit();
         }
     }

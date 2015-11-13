@@ -58,20 +58,19 @@ namespace BlankCalculator {
 
             object[] Vec = new object[3];
             oSel.Clear();
-            Reference RefPt1 = SelectPoint("Selecione 1 de 2 pontos fixos pertencentes á mesma aresta. Esc para sair.");
+            Reference Ref1 = SelectPoint("Selecione o conjunto de pontos fixos. Esc para sair.");
             oSel.Clear();
-            if (RefPt1 == null) Environment.Exit(0);
-            oSpa.GetMeasurable(RefPt1).GetPoint(Vec);
+            if (Ref1 == null) Environment.Exit(0);
+            oSpa.GetMeasurable(Ref1).GetPoint(Vec);
             FixedPoints.Add(new double[] { (double)Vec[0], (double)Vec[1], (double)Vec[2] });
-
-            oSel.Clear();
-            Reference RefPt2 = SelectPoint("Selecione 2 de 2 pontos fixos  pertencentes á mesma aresta. Esc para sair.");
-            oSel.Clear();
-            if (RefPt2 == null) Environment.Exit(0);
-            oSpa.GetMeasurable(RefPt2).GetPoint(Vec);
-            FixedPoints.Add(new double[] { (double)Vec[0], (double)Vec[1], (double)Vec[2] });
-
-            if(FixedPoints.Count==0) Environment.Exit(0);
+            do {
+                Ref1 = SelectPoint("Selecione o conjunto de pontos fixos (" + FixedPoints.Count + " selecionados). Esc para terminar.");
+                oSel.Clear();
+                if (Ref1 == null) break;
+                oSpa.GetMeasurable(Ref1).GetPoint(Vec);
+                FixedPoints.Add(new double[] { (double)Vec[0], (double)Vec[1], (double)Vec[2] });
+            } while (true);
+            if (FixedPoints.Count == 0) Environment.Exit(0);
             oSel.Clear();
             oPartDoc.Part.Update();
             System.Windows.Forms.Application.DoEvents();
@@ -80,8 +79,8 @@ namespace BlankCalculator {
             Reference Ref2 = SelectPlane("Selecione qual o plano do planificado. Esc para terminar.");
             oSel.Clear();
             oSpa.GetMeasurable(Ref2).GetPlane(Vec);
-            oPlane = new double[] { (double)Vec[0], (double)Vec[1], (double)Vec[2], 
-                                    (double)Vec[3], (double)Vec[4], (double)Vec[5], 
+            oPlane = new double[] { (double)Vec[0], (double)Vec[1], (double)Vec[2],
+                                    (double)Vec[3], (double)Vec[4], (double)Vec[5],
                                     (double)Vec[6], (double)Vec[7], (double)Vec[8] };
             return StlPath + ".stl";
         }
@@ -155,7 +154,7 @@ namespace BlankCalculator {
             return Ref;
         }
         internal void PrintTriangles(Vector<double> X2, Mesh M) {
-            PrintTriangles(X2, M.TrianglesVertices, M.oRoot, M.vDir1, M.vDir2, M.OneIndFix, M.OnePointFix, M);
+            PrintTriangles(X2, M.TrianglesVertices, M.oRoot, M.vDir1, M.vDir2, M.OneIndFix, M.OnePointFix, M,true);
         }
         internal void PrintTriangles(Vector<double> x,
             List<int[]> triangles,
@@ -164,18 +163,18 @@ namespace BlankCalculator {
             MathNet.Spatial.Euclidean.UnitVector3D vDir2,
             int iTrans,
             MathNet.Spatial.Euclidean.Point3D oTrans, Mesh M,
-            bool just2D= false) {
+            bool just2D = false) {
 
             Part oPart = oPartDoc.Part;
             HybridShapeFactory hsf = (HybridShapeFactory)oPart.HybridShapeFactory;
             HybridBody hb1;
             try {
-                hb1=(HybridBody)oPart.HybridBodies.GetItem("Blank Calculator Result");
+                hb1 = (HybridBody)oPart.HybridBodies.GetItem("Blank Calculator Result");
                 hb1.get_Name();
                 oSel.Clear();
                 oSel.Add(hb1);
                 oSel.Delete();
-            } catch (Exception) {}
+            } catch (Exception) { }
 
             hb1 = (HybridBody)oPart.HybridBodies.Add();
             hb1.set_Name("Blank Calculator Result");
@@ -186,13 +185,21 @@ namespace BlankCalculator {
             //
             int[] ReferenceTringle = new int[] { 0, 0, 0 };
             foreach (int[] tri in triangles) {
-                if (tri.Contains(M.IndiceOfFixedPoints[0]) && tri.Contains(M.IndiceOfFixedPoints[1])){
-                    ReferenceTringle = tri;break;
+                if (tri.Contains(M.IndiceOfFixedPoints[0]) && tri.Contains(M.IndiceOfFixedPoints[1])) {
+                    ReferenceTringle = tri; break;
                 }
             }
 
 
-            if (ReferenceTringle != new int[] { 0, 0, 0 }) {
+            if (just2D) {
+                MathNet.Spatial.Euclidean.Point3D PtMath = new MathNet.Spatial.Euclidean.Point3D(new double[] { x[iTrans * 2], x[iTrans * 2 + 1], 0 });
+                for (int i = 0; i < x.Count / 2; i++) {
+                    PtMath = new MathNet.Spatial.Euclidean.Point3D(new double[] { x[i * 2], x[i * 2 + 1], 0 });
+                    Point PTCat = hsf.AddNewPointCoord(PtMath.X, PtMath.Y, PtMath.Z);
+                    PTCat.Compute();
+                    RsltPoints.Add(oPart.CreateReferenceFromObject(PTCat));
+                }
+            } else if (ReferenceTringle != new int[] { 0, 0, 0 }) {
                 MathNet.Spatial.Euclidean.Point3D PT3D0 = new MathNet.Spatial.Euclidean.Point3D(M.Vertices[ReferenceTringle[0]]);
                 MathNet.Spatial.Euclidean.Point3D PT3D1 = new MathNet.Spatial.Euclidean.Point3D(M.Vertices[ReferenceTringle[1]]);
                 MathNet.Spatial.Euclidean.Point3D PT3D2 = new MathNet.Spatial.Euclidean.Point3D(M.Vertices[ReferenceTringle[2]]);
@@ -233,7 +240,6 @@ namespace BlankCalculator {
                     PTCat.Compute();
                     RsltPoints.Add(oPart.CreateReferenceFromObject(PTCat));
                 }
-
             }
               
 
