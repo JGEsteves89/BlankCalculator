@@ -58,18 +58,19 @@ namespace BlankCalculator {
 
             object[] Vec = new object[3];
             oSel.Clear();
-            Reference Ref1 = SelectPoint("Selecione o conjunto de pontos fixos. Esc para sair.");
+            Reference RefPt1 = SelectPoint("Selecione 1 de 2 pontos fixos pertencentes á mesma aresta. Esc para sair.");
             oSel.Clear();
-            if (Ref1 == null) Environment.Exit(0);
-            oSpa.GetMeasurable(Ref1).GetPoint(Vec);
+            if (RefPt1 == null) Environment.Exit(0);
+            oSpa.GetMeasurable(RefPt1).GetPoint(Vec);
             FixedPoints.Add(new double[] { (double)Vec[0], (double)Vec[1], (double)Vec[2] });
-            do {
-                Ref1 = SelectPoint("Selecione o conjunto de pontos fixos (" + FixedPoints.Count + " selecionados). Esc para terminar.");
-                oSel.Clear();
-                if (Ref1 == null) break;
-                oSpa.GetMeasurable(Ref1).GetPoint(Vec);
-                FixedPoints.Add(new double[] { (double)Vec[0], (double)Vec[1], (double)Vec[2] });
-            } while (true);
+
+            oSel.Clear();
+            Reference RefPt2 = SelectPoint("Selecione 2 de 2 pontos fixos  pertencentes á mesma aresta. Esc para sair.");
+            oSel.Clear();
+            if (RefPt2 == null) Environment.Exit(0);
+            oSpa.GetMeasurable(RefPt2).GetPoint(Vec);
+            FixedPoints.Add(new double[] { (double)Vec[0], (double)Vec[1], (double)Vec[2] });
+
             if(FixedPoints.Count==0) Environment.Exit(0);
             oSel.Clear();
             oPartDoc.Part.Update();
@@ -84,8 +85,6 @@ namespace BlankCalculator {
                                     (double)Vec[6], (double)Vec[7], (double)Vec[8] };
             return StlPath + ".stl";
         }
-
-
 
         private Reference SelectSurface(string msg) {
             object[] InputobjectType = new object[] { "Face" };
@@ -156,7 +155,7 @@ namespace BlankCalculator {
             return Ref;
         }
         internal void PrintTriangles(Vector<double> X2, Mesh M) {
-            PrintTriangles(X2, M.TrianglesVertices, M.oRoot, M.vDir1, M.vDir2, M.OneIndFix, M.OnePointFix);
+            PrintTriangles(X2, M.TrianglesVertices, M.oRoot, M.vDir1, M.vDir2, M.OneIndFix, M.OnePointFix, M);
         }
         internal void PrintTriangles(Vector<double> x,
             List<int[]> triangles,
@@ -164,7 +163,7 @@ namespace BlankCalculator {
             MathNet.Spatial.Euclidean.UnitVector3D vDir1,
             MathNet.Spatial.Euclidean.UnitVector3D vDir2,
             int iTrans,
-            MathNet.Spatial.Euclidean.Point3D oTrans,
+            MathNet.Spatial.Euclidean.Point3D oTrans, Mesh M,
             bool just2D= false) {
 
             Part oPart = oPartDoc.Part;
@@ -184,15 +183,46 @@ namespace BlankCalculator {
             //CATIA.RefreshDisplay = false;
             //CATIA.Interactive = false;
             List<Reference> RsltPoints = new List<Reference>();
-            MathNet.Spatial.Euclidean.CoordinateSystem Axis = new MathNet.Spatial.Euclidean.CoordinateSystem(oRoot, vDir1, vDir2, vDir1.CrossProduct(vDir2));
-            if (just2D) {
+            //
+            int[] ReferenceTringle = new int[] { 0, 0, 0 };
+            foreach (int[] tri in triangles) {
+                if (tri.Contains(M.IndiceOfFixedPoints[0]) && tri.Contains(M.IndiceOfFixedPoints[1])){
+                    ReferenceTringle = tri;break;
+                }
+            }
+
+
+            if (ReferenceTringle != new int[] { 0, 0, 0 }) {
+                MathNet.Spatial.Euclidean.Point3D PT3D0 = new MathNet.Spatial.Euclidean.Point3D(M.Vertices[ReferenceTringle[0]]);
+                MathNet.Spatial.Euclidean.Point3D PT3D1 = new MathNet.Spatial.Euclidean.Point3D(M.Vertices[ReferenceTringle[1]]);
+                MathNet.Spatial.Euclidean.Point3D PT3D2 = new MathNet.Spatial.Euclidean.Point3D(M.Vertices[ReferenceTringle[2]]);
+
+                MathNet.Spatial.Euclidean.Point3D PT2D0 = new MathNet.Spatial.Euclidean.Point3D(new double[] { x[ReferenceTringle[0] * 2], x[ReferenceTringle[0] * 2 + 1], 0 });
+                MathNet.Spatial.Euclidean.Point3D PT2D1 = new MathNet.Spatial.Euclidean.Point3D(new double[] { x[ReferenceTringle[1] * 2], x[ReferenceTringle[1] * 2 + 1], 0 });
+                MathNet.Spatial.Euclidean.Point3D PT2D2 = new MathNet.Spatial.Euclidean.Point3D(new double[] { x[ReferenceTringle[2] * 2], x[ReferenceTringle[2] * 2 + 1], 0 });
+
+                MathNet.Spatial.Euclidean.UnitVector3D Dir3DX = new MathNet.Spatial.Euclidean.UnitVector3D(PT3D1.ToVector() - PT3D0.ToVector());
+                MathNet.Spatial.Euclidean.UnitVector3D Dir3DY = new MathNet.Spatial.Euclidean.UnitVector3D(PT3D2.ToVector() - PT3D0.ToVector());
+
+                MathNet.Spatial.Euclidean.CoordinateSystem Axis1 = new MathNet.Spatial.Euclidean.CoordinateSystem(PT3D0, Dir3DX, Dir3DY, Dir3DX.CrossProduct(Dir3DY));
+
+                MathNet.Spatial.Euclidean.UnitVector3D Dir2DX = new MathNet.Spatial.Euclidean.UnitVector3D(PT2D1.ToVector() - PT2D0.ToVector());
+                MathNet.Spatial.Euclidean.UnitVector3D Dir2DY = new MathNet.Spatial.Euclidean.UnitVector3D(PT2D2.ToVector() - PT2D0.ToVector());
+
+                MathNet.Spatial.Euclidean.CoordinateSystem Axis2 = new MathNet.Spatial.Euclidean.CoordinateSystem(PT2D0, Dir2DX, Dir2DY, Dir2DX.CrossProduct(Dir2DY));
+
+                MathNet.Spatial.Euclidean.Point3D PtMath = new MathNet.Spatial.Euclidean.Point3D(new double[] { x[iTrans * 2], x[iTrans * 2 + 1], 0 });
+                PtMath = PtMath.TransformBy(Axis2).TransformBy(Axis1);
+                double[] vecTranslation = new double[] { oTrans.X - PtMath.X, oTrans.Y - PtMath.Y, oTrans.Z - PtMath.Z };
                 for (int i = 0; i < x.Count / 2; i++) {
-                    MathNet.Spatial.Euclidean.Point3D  PtMath = new MathNet.Spatial.Euclidean.Point3D(new double[] { x[i * 2], x[i * 2 + 1], 0 });
-                    Point PTCat = hsf.AddNewPointCoord(PtMath.X, PtMath.Y, PtMath.Z);
+                    PtMath = new MathNet.Spatial.Euclidean.Point3D(new double[] { x[i * 2], x[i * 2 + 1], 0 });
+                    PtMath = PtMath.TransformBy(Axis2).TransformBy(Axis1);
+                    Point PTCat = hsf.AddNewPointCoord(PtMath.X + vecTranslation[0], PtMath.Y + vecTranslation[1], PtMath.Z + vecTranslation[2]);
                     PTCat.Compute();
                     RsltPoints.Add(oPart.CreateReferenceFromObject(PTCat));
                 }
             } else {
+                MathNet.Spatial.Euclidean.CoordinateSystem Axis = new MathNet.Spatial.Euclidean.CoordinateSystem(oRoot, vDir1, vDir2, vDir1.CrossProduct(vDir2));
                 MathNet.Spatial.Euclidean.Point3D PtMath = new MathNet.Spatial.Euclidean.Point3D(new double[] { x[iTrans * 2], x[iTrans * 2 + 1], 0 });
                 PtMath = Axis.TransformToCoordSys(PtMath);
                 double[] vecTranslation = new double[] { oTrans.X - PtMath.X, oTrans.Y - PtMath.Y, oTrans.Z - PtMath.Z };
@@ -203,19 +233,14 @@ namespace BlankCalculator {
                     PTCat.Compute();
                     RsltPoints.Add(oPart.CreateReferenceFromObject(PTCat));
                 }
+
             }
               
 
-            foreach (int[] item in triangles) {
+            foreach (int[] item in M.Edges) {
                 Line lUp = hsf.AddNewLinePtPt(RsltPoints[item[0]], RsltPoints[item[1]]);
                 lUp.Compute();
                 hb1.AppendHybridShape(lUp);
-                Line l0 = hsf.AddNewLinePtPt(RsltPoints[item[1]], RsltPoints[item[2]]);
-                l0.Compute();
-                hb1.AppendHybridShape(l0);
-                Line lDown = hsf.AddNewLinePtPt(RsltPoints[item[2]], RsltPoints[item[0]]);
-                lDown.Compute();
-                hb1.AppendHybridShape(lDown);
             }
             
             //CATIA.RefreshDisplay = true;

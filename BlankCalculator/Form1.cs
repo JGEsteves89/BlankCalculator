@@ -21,9 +21,14 @@ namespace BlankCalculator {
             NewtonRaphson,
             EnergyModel
         }
+        public enum PlanarGraphSolver {
+            EdgeRatioBased,
+            AngleBased
+        }
         private void Form1_Load(object sender, EventArgs e) {
             Mesh M = new Mesh();
             FiniteSolverMethod Method = FiniteSolverMethod.EnergyModel;
+            PlanarGraphSolver PlanarSolver = PlanarGraphSolver.EdgeRatioBased;
             //Interop with catia to retrive exported stlPath
             string StlPath = CAT.SaveSurfaceAndFixedPoints(ref M.FixedPoints, ref M.oVecPlane);
 
@@ -40,8 +45,15 @@ namespace BlankCalculator {
             //Calculation of Plane of flattening
             M.ComputePlaneofFlattening();
 
-            //Solve using the edge to edge interpretation of the article
-            Vector<double> X = EdgeToEdgeSolver.Solve(M);
+            Vector<double> X= Vector<double>.Build.Dense(1);
+            if (PlanarSolver == PlanarGraphSolver.EdgeRatioBased) {
+                //Solve using the edge to edge interpretation of the article
+                X = EdgeToEdgeSolver.Solve(M);
+            } else if (PlanarSolver == PlanarGraphSolver.AngleBased) {
+                //Solve using Angle Based Flattening Method
+                X = AngleBasedFlattening.Solve(M);
+            }
+
 
             //Print Result of triangles in CATIA;
             CAT.PrintTriangles(X, M);

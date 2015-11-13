@@ -7,8 +7,11 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace BlankCalculator {
-    public class AngleBasedFlattening {
-        public Vector<double> Solve(List<double[]> Vertices, List<int[]> Triangles, List<int> IndiceOfFixedPoints, Point3D oRoot, UnitVector3D vDir1, UnitVector3D vDir2) {
+    public static class AngleBasedFlattening {
+        internal static Vector<double> Solve(Mesh M) {
+            return Solve(M.Vertices, M.TrianglesVertices, M.Edges, M.IndiceOfFixedPoints, M.oRoot, M.vDir1, M.vDir2);
+        }
+        public static Vector<double> Solve(List<double[]> Vertices, List<int[]> Triangles, List<int[]> Edges, List<int> IndiceOfFixedPoints, Point3D oRoot, UnitVector3D vDir1, UnitVector3D vDir2) {
 
             Vector<double> Solution = Vector<double>.Build.Dense(Triangles.Count * 3);
             
